@@ -2,11 +2,6 @@
  * Created by Dave on 3/12/17.
  */
 
-
-/**
- * Created by Dave on 3/9/17.
- */
-
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
@@ -23,7 +18,12 @@ import javafx.stage.Stage;
 public class ClientToReceiveFiles extends Application {
     private String command; // last command sent to the server
     private File serverFile; // last file sent from the server
-    private ArrayList<String> txtFile; // text from file
+    private ObjectOutputStream oos;
+    private ObjectInputStream ois;
+    private TextArea textArea;
+    private Object response;
+    private ArrayList<String> textFile;
+
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -37,7 +37,7 @@ public class ClientToReceiveFiles extends Application {
         paneForTextField.setBottom(submit);
 
         // add a button to perform actions
-        Button read = new Button("Read Text File");
+        Button read = new Button("Open Text File");
         Button create = new Button("Create Directory");
         Button remove = new Button("Remove");
         Button write = new Button("Write");
@@ -64,7 +64,7 @@ public class ClientToReceiveFiles extends Application {
 
         BorderPane mainPane = new BorderPane();
         // display contents
-        TextArea textArea = new TextArea();
+        textArea = new TextArea();
         //set the size of the text area
         textArea.setPrefColumnCount(50);
         textArea.setPrefRowCount(30);
@@ -83,71 +83,56 @@ public class ClientToReceiveFiles extends Application {
         Socket socket = new Socket("localhost", 8675);
 
         //write to socket using ObjectOutputStream
-        ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-        ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+        oos = new ObjectOutputStream(socket.getOutputStream());
+        ois = new ObjectInputStream(socket.getInputStream());
         System.out.println("Sending request to Socket Server");
 
         submit.setOnAction( e -> {
-
-            try {
-                command = textField.getText();
-                oos.writeObject(command);
-
-                Object response = ois.readObject();
+            command = textField.getText();
+            if (!command.equals("")) {
+                writeToServer();
+                response = readFromServer();
 
                 if (response instanceof File[]) {
                     // excepting an array
-                    File [] files = (File[]) response;
+                    File[] files = (File[]) response;
                     textArea.appendText("Command was " + command + "\n");
                     textArea.appendText("Response from server:\n");
                     // display all the files in the directory to the client
                     for (int i = 0; i < files.length; i++) {
                         textArea.appendText(printFile(files, i));
                     }
+                    textField.setText(""); // clear the text field
                 }
-
                 else if (isInteger(command) && response instanceof File) {
                     // if command is a number we expect a file in return
                     File requestedFile = (File) response;
                     serverFile = requestedFile; // save the file locally
                     textArea.appendText("Command was " + command + "\n");
-                    textArea.appendText("Response from server:\n");
-                    textArea.appendText(requestedFile.getName());
+                    textArea.appendText("Response from server: ");
+                    textArea.appendText(requestedFile.getName() +"\n");
+                    textField.setText(""); // clear the text field
                 }
-
+                else if (response instanceof String) {
+                    textArea.appendText("Response: " + response);
+                }
                 else {
                     textArea.appendText("Invalid Server Response\n");
                 }
             }
-            catch (IOException ex1) {
-                System.err.print(ex1);
-            }
-            catch (ClassNotFoundException ex2) {
-                ex2.printStackTrace();
+            else {
+                textArea.appendText("Enter a command");
             }
         });
 
         read.setOnAction( e -> {
-            // read text file received from server
-            String line;
-
             if (serverFile != null) {
-                try {
-                    // FileReader to read text files in default encoding
-                    FileReader fileReader = new FileReader(serverFile);
-
-                    // wrap FileReader in BufferedReader
-                    BufferedReader bufferedReader = new BufferedReader(fileReader);
-
-                    while ((line = bufferedReader.readLine()) != null) {
-                        textArea.appendText("\n");
-                        textArea.appendText(line);
-                    }
-
-                    bufferedReader.close();
-                }
-                catch (IOException ex) {
-                    System.out.println("Unable to open file " + serverFile.getName());
+                textFile = PopUpWindows.read(serverFile);
+                if (!textFile.isEmpty()) {
+                    // write arrayList to the server
+                    writeObjectToServer();
+                    Object reply = readFromServer();
+                    textArea.appendText((String) reply);
                 }
             }
             else {
@@ -172,7 +157,7 @@ public class ClientToReceiveFiles extends Application {
             String directoryToCreate = PopUpWindows.create();
             if (isInteger(directoryToCreate)) {
                 // user did not want to create a new directory
-                textArea.appendText("Directory creation avoided");
+                textArea.appendText("Directory creation canceled");
             }
 
             else {
@@ -181,24 +166,26 @@ public class ClientToReceiveFiles extends Application {
                 String tmp = directoryToCreate + "$";
 
                 command = tmp;
+                writeToServer();
+                Object reply = readFromServer();
+                textArea.appendText((String) reply);
+            }
+        });
 
-                try {
-                    oos.writeObject(command);
-                }
-                catch (IOException ioe) {
-                    textArea.appendText(ioe.getLocalizedMessage());
-                }
+        remove.setOnAction(e -> {
+            String toRemove = PopUpWindows.remove();
+            if (isInteger(toRemove)) {
+                // user did not want to delete directory or file
+                textArea.appendText("Directory removal canceled");
+            }
 
-                try {
-                    Object response = ois.readObject();
-                    textArea.appendText("Server Response: " + response);
-                }
-                catch (ClassNotFoundException cnf) {
-                    textArea.appendText(cnf.getLocalizedMessage());
-                }
-                catch (IOException ioe2) {
-                    textArea.appendText(ioe2.getLocalizedMessage());
-                }
+            else {
+                // user clicked yes end the string with a # sign
+                // so we can distinguish this command from others
+                String tmp = toRemove + "#";
+                command = tmp;
+                writeToServer();
+                Object reply = readFromServer();
             }
         });
     }
@@ -222,6 +209,37 @@ public class ClientToReceiveFiles extends Application {
             return false;
         }
         return true;
+    }
+
+    private void writeToServer() {
+        try {
+            oos.writeObject(command);
+        }
+        catch (IOException ioe) {
+            textArea.appendText(ioe.getLocalizedMessage());
+        }
+    }
+
+    private void writeObjectToServer() {
+        try {
+            oos.writeObject(textFile);
+        }
+        catch (IOException ioe) {
+            //System.out.println(ioe.getMessage());
+            textArea.appendText(ioe.getLocalizedMessage());
+        }
+    }
+
+    private Object readFromServer() {
+        try {
+            Object response = ois.readObject();
+            return response;
+        } catch (ClassNotFoundException cnf) {
+            textArea.appendText(cnf.getLocalizedMessage());
+        } catch (IOException ioe2) {
+            textArea.appendText(ioe2.getMessage());
+        }
+        return "Failed to read from server\n";
     }
 }
 

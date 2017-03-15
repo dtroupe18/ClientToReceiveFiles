@@ -1,7 +1,7 @@
 /*
  * Created by Dave on 3/15/17.
  * This class is designed to handle all popup windows
- * functions correspond to button name in the application
+ * functions correspond to button names in the application
  */
 
 import javafx.stage.*;
@@ -9,11 +9,16 @@ import javafx.scene.*;
 import javafx.scene.layout.*;
 import javafx.scene.control.*;
 import javafx.geometry.*;
+import java.io.*;
+import java.util.ArrayList;
 
 public class PopUpWindows {
 
     private static boolean answer;
     private static String create;
+    private static String remove;
+    private static ArrayList<String> newText;
+    private static CustomFile updatedFile;
 
     public static boolean quit() {
         Stage window = new Stage();
@@ -94,5 +99,118 @@ public class PopUpWindows {
 
         window.showAndWait();
         return create;
+    }
+
+    public static String remove() {
+        Stage window = new Stage();
+
+
+        // user can only interact with alert box window
+        window.initModality(Modality.APPLICATION_MODAL);
+        window.setTitle("Remove Directory or File");
+        TextField textField = new TextField();
+
+        window.setMaxWidth(300);
+        window.setMaxHeight(300);
+
+        Label label = new Label();
+        Label instructions = new Label("Enter name for directory or file you'd like to remove");
+        label.setText("Are you sure you want to remove that file or directory?");
+
+        // create two buttons
+        Button yesButton = new Button("Yes");
+        Button noButton = new Button("No");
+
+        yesButton.setOnAction(e -> {
+            remove = textField.getText().trim();
+            window.close();
+        });
+
+        noButton.setOnAction(e -> {
+            remove = "1";
+            window.close();
+        });
+
+        VBox layout = new VBox(10);
+        layout.getChildren().addAll(instructions, textField, label, yesButton, noButton);
+        layout.setAlignment(Pos.CENTER);
+        //layout.setStyle("-fx-background-color: red");
+
+        Scene scene = new Scene(layout);
+        window.setScene(scene);
+
+        window.showAndWait();
+        return remove;
+    }
+
+    public static ArrayList<String> read(File file) {
+        Stage window = new Stage();
+        window.setTitle(file.getName());
+
+        BorderPane mainPane = new BorderPane();
+        // display contents
+        TextArea textArea = new TextArea();
+        //set the size of the text area
+        textArea.setPrefColumnCount(50);
+        textArea.setPrefRowCount(30);
+        mainPane.setCenter(new ScrollPane(textArea));
+
+        window.setMaxWidth(600);
+        window.setMaxHeight(500);
+
+        // read file and place in textArea
+        String line;
+        try {
+            // FileReader to read text files in default encoding
+            FileReader fileReader = new FileReader(file);
+
+            // wrap FileReader in BufferedReader
+            BufferedReader bufferedReader = new BufferedReader(fileReader);
+
+            while ((line = bufferedReader.readLine()) != null) {
+                textArea.appendText("\n");
+                textArea.appendText(line);
+            }
+
+            bufferedReader.close();
+        }
+        catch (IOException ex) {
+            System.out.println("Unable to open file " + file.getName());
+        }
+
+        // create two buttons
+        Button close = new Button("Close");
+        close.setStyle("-fx-text-fill: red");
+        Button write = new Button("Write");
+
+        //create pane for buttons
+        GridPane gridPane = new GridPane();
+        // add horizontal spacing between buttons in grid pane
+        gridPane.setHgap(8);
+
+        // add all the buttons to grid pane
+        gridPane.add(close, 0, 0);
+        gridPane.add(write, 1, 0);
+
+        close.setOnAction(e -> window.close());
+
+        write.setOnAction(e -> {
+            newText = new ArrayList<>();
+            String name = file.getName();
+            newText.add(name);
+            for (String textLine: textArea.getText().split("\\n")) {
+                newText.add(textLine);
+                //updatedFile = new CustomFile(newText, file.getName());
+                window.close();
+            }
+        });
+
+        mainPane.setBottom(gridPane);
+        Scene scene = new Scene(mainPane);
+        window.setScene(scene);
+        window.showAndWait();
+
+        return newText;
+
     }
 }
