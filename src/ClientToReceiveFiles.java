@@ -5,7 +5,6 @@
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
-
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -23,6 +22,7 @@ public class ClientToReceiveFiles extends Application {
     private TextArea textArea;
     private Object response;
     private ArrayList<String> textFile;
+    private Socket socket;
 
 
     @Override
@@ -34,13 +34,14 @@ public class ClientToReceiveFiles extends Application {
         paneForTextField.setStyle("-fx-border-color: red");
         paneForTextField.setLeft(new Label("Send Command To Server: "));
         Button submit = new Button("Submit");
-        paneForTextField.setBottom(submit);
+        Button reconnect = new Button("Reconnect");
+        paneForTextField.setBottom(reconnect);
+        paneForTextField.setRight(submit);
 
         // add a button to perform actions
         Button read = new Button("Open Text File");
         Button create = new Button("Create Directory");
         Button remove = new Button("Remove");
-        Button write = new Button("Write");
         Button seek = new Button("Seek");
         Button quit = new Button("QUIT");
         quit.setStyle("-fx-text-fill: red");
@@ -58,8 +59,7 @@ public class ClientToReceiveFiles extends Application {
         gridPane.add(read, 0, 0);
         gridPane.add(create, 1, 0);
         gridPane.add(remove, 2, 0);
-        gridPane.add(write, 3, 0);
-        gridPane.add(seek, 4, 0);
+        gridPane.add(seek, 3, 0);
         gridPane.add(quit, 5, 0);
 
         BorderPane mainPane = new BorderPane();
@@ -80,12 +80,7 @@ public class ClientToReceiveFiles extends Application {
         primaryStage.show();
         // END OF GUI
 
-        Socket socket = new Socket("localhost", 8675);
-
-        //write to socket using ObjectOutputStream
-        oos = new ObjectOutputStream(socket.getOutputStream());
-        ois = new ObjectInputStream(socket.getInputStream());
-        System.out.println("Sending request to Socket Server");
+        connectToServer();
 
         submit.setOnAction( e -> {
             command = textField.getText();
@@ -124,6 +119,8 @@ public class ClientToReceiveFiles extends Application {
                 textArea.appendText("Enter a command");
             }
         });
+
+        reconnect.setOnAction(e -> connectToServer());
 
         read.setOnAction( e -> {
             if (serverFile != null) {
@@ -225,7 +222,6 @@ public class ClientToReceiveFiles extends Application {
             oos.writeObject(textFile);
         }
         catch (IOException ioe) {
-            //System.out.println(ioe.getMessage());
             textArea.appendText(ioe.getLocalizedMessage());
         }
     }
@@ -240,6 +236,19 @@ public class ClientToReceiveFiles extends Application {
             textArea.appendText(ioe2.getMessage());
         }
         return "Failed to read from server\n";
+    }
+
+    private void connectToServer() {
+        try {
+            socket = new Socket("localhost", 8675);
+            //write to socket using ObjectOutputStream
+            oos = new ObjectOutputStream(socket.getOutputStream());
+            ois = new ObjectInputStream(socket.getInputStream());
+            textArea.appendText("Connected to Server");
+        }
+        catch (IOException ex) {
+            textArea.appendText("Failed to connect to server\n");
+        }
     }
 }
 

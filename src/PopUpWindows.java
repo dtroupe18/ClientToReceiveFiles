@@ -61,7 +61,6 @@ public class PopUpWindows {
 
     public static String create() {
         Stage window = new Stage();
-        String directoryToCreate;
 
         // user can only interact with alert box window
         window.initModality(Modality.APPLICATION_MODAL);
