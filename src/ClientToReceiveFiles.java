@@ -25,6 +25,7 @@ public class ClientToReceiveFiles extends Application {
     private Socket socket;
 
 
+
     @Override
     public void start(Stage primaryStage) throws Exception {
 
@@ -42,7 +43,6 @@ public class ClientToReceiveFiles extends Application {
         Button read = new Button("Open Text File");
         Button create = new Button("Create Directory");
         Button remove = new Button("Remove");
-        Button seek = new Button("Seek");
         Button quit = new Button("QUIT");
         quit.setStyle("-fx-text-fill: red");
 
@@ -59,8 +59,7 @@ public class ClientToReceiveFiles extends Application {
         gridPane.add(read, 0, 0);
         gridPane.add(create, 1, 0);
         gridPane.add(remove, 2, 0);
-        gridPane.add(seek, 3, 0);
-        gridPane.add(quit, 5, 0);
+        gridPane.add(quit, 10, 0);
 
         BorderPane mainPane = new BorderPane();
         // display contents
@@ -109,14 +108,14 @@ public class ClientToReceiveFiles extends Application {
                     textField.setText(""); // clear the text field
                 }
                 else if (response instanceof String) {
-                    textArea.appendText("Response: " + response);
+                    textArea.appendText("Response: " + response + "\n");
                 }
                 else {
                     textArea.appendText("Invalid Server Response\n");
                 }
             }
             else {
-                textArea.appendText("Enter a command");
+                textArea.appendText("Enter a command:\n");
             }
         });
 
@@ -125,7 +124,10 @@ public class ClientToReceiveFiles extends Application {
         read.setOnAction( e -> {
             if (serverFile != null) {
                 textFile = PopUpWindows.read(serverFile);
-                if (!textFile.isEmpty()) {
+                if (textFile.isEmpty()) {
+                   textArea.appendText("Text file closed\n");
+                }
+                else {
                     // write arrayList to the server
                     writeObjectToServer();
                     Object reply = readFromServer();
@@ -133,7 +135,7 @@ public class ClientToReceiveFiles extends Application {
                 }
             }
             else {
-                System.out.println("File does not exist");
+                System.out.println("File does not exist\n");
             }
         });
 
@@ -141,6 +143,8 @@ public class ClientToReceiveFiles extends Application {
             boolean userQuit = PopUpWindows.quit();
             if (userQuit) {
                 try {
+                    command = "Quit";
+                    writeToServer();
                     socket.close();
                 }
                 catch (IOException ioe) {
@@ -154,7 +158,7 @@ public class ClientToReceiveFiles extends Application {
             String directoryToCreate = PopUpWindows.create();
             if (isInteger(directoryToCreate)) {
                 // user did not want to create a new directory
-                textArea.appendText("Directory creation canceled");
+                textArea.appendText("Directory creation cancelled\n");
             }
 
             else {
@@ -173,7 +177,7 @@ public class ClientToReceiveFiles extends Application {
             String toRemove = PopUpWindows.remove();
             if (isInteger(toRemove)) {
                 // user did not want to delete directory or file
-                textArea.appendText("Directory removal canceled");
+                textArea.appendText("Directory removal cancelled\n");
             }
 
             else {
@@ -183,6 +187,7 @@ public class ClientToReceiveFiles extends Application {
                 command = tmp;
                 writeToServer();
                 Object reply = readFromServer();
+                textArea.appendText((String) reply + "\n");
             }
         });
     }
@@ -244,7 +249,7 @@ public class ClientToReceiveFiles extends Application {
             //write to socket using ObjectOutputStream
             oos = new ObjectOutputStream(socket.getOutputStream());
             ois = new ObjectInputStream(socket.getInputStream());
-            textArea.appendText("Connected to Server");
+            textArea.appendText("Connected to Server\n");
         }
         catch (IOException ex) {
             textArea.appendText("Failed to connect to server\n");

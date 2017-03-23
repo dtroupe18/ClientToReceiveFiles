@@ -4,6 +4,10 @@
  * functions correspond to button names in the application
  */
 
+import javafx.application.Platform;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.fxml.FXML;
 import javafx.stage.*;
 import javafx.scene.*;
 import javafx.scene.layout.*;
@@ -18,10 +22,11 @@ public class PopUpWindows {
     private static String create;
     private static String remove;
     private static ArrayList<String> newText;
-    private static CustomFile updatedFile;
+    private static Stage window;
+
 
     public static boolean quit() {
-        Stage window = new Stage();
+        window = new Stage();
 
         // user can only interact with alert box window
         window.initModality(Modality.APPLICATION_MODAL);
@@ -60,7 +65,7 @@ public class PopUpWindows {
     }
 
     public static String create() {
-        Stage window = new Stage();
+        window = new Stage();
 
         // user can only interact with alert box window
         window.initModality(Modality.APPLICATION_MODAL);
@@ -101,7 +106,7 @@ public class PopUpWindows {
     }
 
     public static String remove() {
-        Stage window = new Stage();
+        window = new Stage();
 
 
         // user can only interact with alert box window
@@ -143,7 +148,7 @@ public class PopUpWindows {
     }
 
     public static ArrayList<String> read(File file) {
-        Stage window = new Stage();
+        window = new Stage();
         window.setTitle(file.getName());
 
         BorderPane mainPane = new BorderPane();
@@ -208,8 +213,7 @@ public class PopUpWindows {
         Scene scene = new Scene(mainPane);
         window.setScene(scene);
         window.showAndWait();
-
+        
         return newText;
-
     }
 }
