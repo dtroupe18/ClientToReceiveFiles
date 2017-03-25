@@ -23,6 +23,7 @@ public class ClientToReceiveFiles extends Application {
     private Object response;
     private ArrayList<String> textFile;
     private Socket socket;
+    private Boolean connected;
 
 
 
@@ -79,69 +80,83 @@ public class ClientToReceiveFiles extends Application {
         primaryStage.show();
         // END OF GUI
 
-        connectToServer();
+        connected = connectToServer();
 
         submit.setOnAction( e -> {
-            command = textField.getText();
-            if (!command.equals("")) {
-                writeToServer();
-                response = readFromServer();
+            if (connected) {
+                command = textField.getText();
+                if (!command.equals("")) {
+                    writeToServer();
+                    response = readFromServer();
 
-                if (response instanceof File[]) {
-                    // excepting an array
-                    File[] files = (File[]) response;
-                    textArea.appendText("Command was " + command + "\n");
-                    textArea.appendText("Response from server:\n");
-                    // display all the files in the directory to the client
-                    for (int i = 0; i < files.length; i++) {
-                        textArea.appendText(printFile(files, i));
+                    if (response instanceof File[]) {
+                        // excepting an array
+                        File[] files = (File[]) response;
+                        textArea.appendText("Command was " + command + "\n");
+                        textArea.appendText("Response from server:\n");
+                        // display all the files in the directory to the client
+                        for (int i = 0; i < files.length; i++) {
+                            textArea.appendText(printFile(files, i));
+                        }
+                        textField.setText(""); // clear the text field
                     }
-                    textField.setText(""); // clear the text field
-                }
-                else if (isInteger(command) && response instanceof File) {
-                    // if command is a number we expect a file in return
-                    File requestedFile = (File) response;
-                    serverFile = requestedFile; // save the file locally
-                    textArea.appendText("Command was " + command + "\n");
-                    textArea.appendText("Response from server: ");
-                    textArea.appendText(requestedFile.getName() +"\n");
-                    textField.setText(""); // clear the text field
-                }
-                else if (response instanceof String) {
-                    textArea.appendText("Response: " + response + "\n");
+                    else if (isInteger(command) && response instanceof File) {
+                        // if command is a number we expect a file in return
+                        File requestedFile = (File) response;
+                        serverFile = requestedFile; // save the file locally
+                        textArea.appendText("Command was " + command + "\n");
+                        textArea.appendText("Response from server: ");
+                        textArea.appendText(requestedFile.getName() +"\n");
+                        textField.setText(""); // clear the text field
+                    }
+                    else if (response instanceof String) {
+                        textArea.appendText("Response: " + response + "\n");
+                    }
+                    else {
+                        textArea.appendText("Invalid Server Response\n");
+                    }
                 }
                 else {
-                    textArea.appendText("Invalid Server Response\n");
+                    textArea.appendText("Enter a command:\n");
                 }
             }
-            else {
-                textArea.appendText("Enter a command:\n");
+            // not connected
+            else  {
+                textArea.appendText("Please connect to the server:\n");
             }
         });
 
-        reconnect.setOnAction(e -> connectToServer());
+        reconnect.setOnAction(e -> {
+            connected = connectToServer();
+        });
 
         read.setOnAction( e -> {
-            if (serverFile != null) {
-                textFile = PopUpWindows.read(serverFile);
-                if (textFile.isEmpty()) {
-                   textArea.appendText("Text file closed\n");
+            if (connected) {
+                if (serverFile != null) {
+                    textFile = PopUpWindows.read(serverFile);
+                    if (textFile.isEmpty()) {
+                        textArea.appendText("Text file closed\n");
+                    }
+                    else {
+                        // write arrayList to the server
+                        writeObjectToServer();
+                        Object reply = readFromServer();
+                        textArea.appendText((String) reply);
+                    }
                 }
                 else {
-                    // write arrayList to the server
-                    writeObjectToServer();
-                    Object reply = readFromServer();
-                    textArea.appendText((String) reply);
+                    System.out.println("File does not exist\n");
                 }
             }
+            // not connected
             else {
-                System.out.println("File does not exist\n");
+                textArea.appendText("Please connect to the server:\n");
             }
         });
 
         quit.setOnAction(e -> {
             boolean userQuit = PopUpWindows.quit();
-            if (userQuit) {
+            if (userQuit && connected) {
                 try {
                     command = "Quit";
                     writeToServer();
@@ -152,42 +167,57 @@ public class ClientToReceiveFiles extends Application {
                 }
                 primaryStage.close();
             }
+            else {
+                primaryStage.close();
+            }
         });
 
         create.setOnAction(e -> {
-            String directoryToCreate = PopUpWindows.create();
-            if (isInteger(directoryToCreate)) {
-                // user did not want to create a new directory
-                textArea.appendText("Directory creation cancelled\n");
+            if (connected) {
+                String directoryToCreate = PopUpWindows.create();
+                if (isInteger(directoryToCreate)) {
+                    // user did not want to create a new directory
+                    textArea.appendText("Directory creation cancelled\n");
+                }
+
+                else {
+                    // user clicked yes end the string with a dollar sign
+                    // so we can distinguish this command from others
+                    String tmp = directoryToCreate + "$";
+
+                    command = tmp;
+                    writeToServer();
+                    Object reply = readFromServer();
+                    textArea.appendText((String) reply + "\n");
+                }
             }
-
+            // not connected
             else {
-                // user clicked yes end the string with a dollar sign
-                // so we can distinguish this command from others
-                String tmp = directoryToCreate + "$";
-
-                command = tmp;
-                writeToServer();
-                Object reply = readFromServer();
-                textArea.appendText((String) reply);
+                textArea.appendText("Please connect to the server:\n");
             }
         });
 
         remove.setOnAction(e -> {
-            String toRemove = PopUpWindows.remove();
-            if (isInteger(toRemove)) {
-                // user did not want to delete directory or file
-                textArea.appendText("Directory removal cancelled\n");
-            }
+            if (connected) {
+                String toRemove = PopUpWindows.remove();
+                if (isInteger(toRemove)) {
+                    // user did not want to delete directory or file
+                    textArea.appendText("Directory removal cancelled\n");
+                }
 
+                else {
+                    // user clicked yes end the string with a # sign
+                    // so we can distinguish this command from others
+                    String tmp = toRemove + "#";
+                    command = tmp;
+                    writeToServer();
+                    Object reply = readFromServer();
+                    textArea.appendText((String) reply + "\n");
+                }
+            }
+            // not connected
             else {
-                // user clicked yes end the string with a # sign
-                // so we can distinguish this command from others
-                String tmp = toRemove + "#";
-                command = tmp;
-                writeToServer();
-                Object reply = readFromServer();
-                textArea.appendText((String) reply + "\n");
+                textArea.appendText("Please connect to the server:\n");
             }
         });
     }
@@ -218,7 +248,7 @@ public class ClientToReceiveFiles extends Application {
             oos.writeObject(command);
         }
         catch (IOException ioe) {
-            textArea.appendText(ioe.getLocalizedMessage());
+            textArea.appendText(ioe.getLocalizedMessage() + "\n");
         }
     }
 
@@ -227,7 +257,7 @@ public class ClientToReceiveFiles extends Application {
             oos.writeObject(textFile);
         }
         catch (IOException ioe) {
-            textArea.appendText(ioe.getLocalizedMessage());
+            textArea.appendText(ioe.getLocalizedMessage() + "\n");
         }
     }
 
@@ -243,16 +273,18 @@ public class ClientToReceiveFiles extends Application {
         return "Failed to read from server\n";
     }
 
-    private void connectToServer() {
+    private boolean connectToServer() {
         try {
             socket = new Socket("localhost", 8675);
             //write to socket using ObjectOutputStream
             oos = new ObjectOutputStream(socket.getOutputStream());
             ois = new ObjectInputStream(socket.getInputStream());
             textArea.appendText("Connected to Server\n");
+            return true;
         }
         catch (IOException ex) {
             textArea.appendText("Failed to connect to server\n");
+            return false;
         }
     }
 }

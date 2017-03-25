@@ -4,10 +4,7 @@
  * functions correspond to button names in the application
  */
 
-import javafx.application.Platform;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
-import javafx.fxml.FXML;
+
 import javafx.stage.*;
 import javafx.scene.*;
 import javafx.scene.layout.*;
@@ -31,8 +28,8 @@ public class PopUpWindows {
         // user can only interact with alert box window
         window.initModality(Modality.APPLICATION_MODAL);
         window.setTitle("Quit");
-        window.setMaxWidth(300);
-        window.setMaxHeight(300);
+        window.setMaxWidth(450);
+        window.setMaxHeight(450);
 
         Label label = new Label();
         label.setText("Are you sure you want to quit?");
@@ -72,8 +69,8 @@ public class PopUpWindows {
         window.setTitle("Create Directory");
         TextField textField = new TextField();
 
-        window.setMaxWidth(300);
-        window.setMaxHeight(300);
+        window.setMaxWidth(400);
+        window.setMaxHeight(400);
 
         Label label = new Label();
         Label instructions = new Label("Enter name for directory you'd like to create");
@@ -114,8 +111,8 @@ public class PopUpWindows {
         window.setTitle("Remove Directory or File");
         TextField textField = new TextField();
 
-        window.setMaxWidth(300);
-        window.setMaxHeight(300);
+        window.setMaxWidth(400);
+        window.setMaxHeight(400);
 
         Label label = new Label();
         Label instructions = new Label("Enter name for directory or file you'd like to remove");
@@ -204,7 +201,6 @@ public class PopUpWindows {
             newText.add(name);
             for (String textLine: textArea.getText().split("\\n")) {
                 newText.add(textLine);
-                //updatedFile = new CustomFile(newText, file.getName());
                 window.close();
             }
         });
