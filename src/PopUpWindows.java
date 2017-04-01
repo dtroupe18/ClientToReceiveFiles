@@ -12,6 +12,9 @@ import javafx.scene.control.*;
 import javafx.geometry.*;
 import java.io.*;
 import java.util.ArrayList;
+import java.nio.file.Files;
+import java.util.Arrays;
+
 
 public class PopUpWindows {
 
@@ -20,6 +23,7 @@ public class PopUpWindows {
     private static String remove;
     private static ArrayList<String> newText;
     private static Stage window;
+    private static  byte[] bytes;
 
 
     public static boolean quit() {
@@ -144,6 +148,7 @@ public class PopUpWindows {
         return remove;
     }
 
+
     public static ArrayList<String> read(File file) {
         window = new Stage();
         window.setTitle(file.getName());
@@ -155,6 +160,16 @@ public class PopUpWindows {
         textArea.setPrefColumnCount(50);
         textArea.setPrefRowCount(30);
         mainPane.setCenter(new ScrollPane(textArea));
+        // create two buttons
+        Button write = new Button("Write");
+
+        //create pane for buttons
+        GridPane gridPane = new GridPane();
+        // add horizontal spacing between buttons in grid pane
+        gridPane.setHgap(8);
+
+        // add all the buttons to grid pane
+        gridPane.add(write, 1, 0);
 
         window.setMaxWidth(600);
         window.setMaxHeight(500);
@@ -179,21 +194,6 @@ public class PopUpWindows {
             System.out.println("Unable to open file " + file.getName());
         }
 
-        // create two buttons
-        Button close = new Button("Close");
-        close.setStyle("-fx-text-fill: red");
-        Button write = new Button("Write");
-
-        //create pane for buttons
-        GridPane gridPane = new GridPane();
-        // add horizontal spacing between buttons in grid pane
-        gridPane.setHgap(8);
-
-        // add all the buttons to grid pane
-        gridPane.add(close, 0, 0);
-        gridPane.add(write, 1, 0);
-
-        close.setOnAction(e -> window.close());
 
         write.setOnAction(e -> {
             newText = new ArrayList<>();
@@ -212,4 +212,57 @@ public class PopUpWindows {
         
         return newText;
     }
+
+    // this method will fail with large files
+    public static void readBytes(File file) {
+        window = new Stage();
+        window.setTitle(file.getName());
+
+        BorderPane mainPane = new BorderPane();
+        // display contents
+        TextArea textArea = new TextArea();
+        //set the size of the text area
+        textArea.setPrefColumnCount(50);
+        textArea.setPrefRowCount(30);
+        mainPane.setCenter(new ScrollPane(textArea));
+        // create two buttons
+        Button write = new Button("Write");
+
+        //create pane for buttons
+        GridPane gridPane = new GridPane();
+        // add horizontal spacing between buttons in grid pane
+        gridPane.setHgap(8);
+
+        // add all the buttons to grid pane
+        gridPane.add(write, 1, 0);
+
+        window.setMaxWidth(600);
+        window.setMaxHeight(500);
+
+        // convert file into bytes
+        try {
+            bytes = Files.readAllBytes(file.toPath());
+            //textArea.appendText(Arrays.toString(bytes));
+            for (int i = 0; i < bytes.length; i++) {
+                if (i % 5 == 0) {
+                    textArea.appendText("\n");
+                }
+                textArea.appendText(Integer.toBinaryString((bytes[i] & 0xFF) + 0x100).substring(1) + " ");
+            }
+        }
+        catch (IOException ex) {
+            System.out.println(ex.getLocalizedMessage());
+        }
+
+        write.setOnAction(e -> {
+            // send bytes back???
+        });
+
+        mainPane.setBottom(gridPane);
+        Scene scene = new Scene(mainPane);
+        window.setScene(scene);
+        window.showAndWait();
+    }
+
+
 }

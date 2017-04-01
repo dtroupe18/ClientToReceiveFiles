@@ -22,6 +22,7 @@ public class ClientToReceiveFiles extends Application {
     private TextArea textArea;
     private Object response;
     private ArrayList<String> textFile;
+    private byte[] bytes;
     private Socket socket;
     private Boolean connected;
 
@@ -42,6 +43,7 @@ public class ClientToReceiveFiles extends Application {
 
         // add a button to perform actions
         Button read = new Button("Open Text File");
+        Button getBytes = new Button("Get Bytes");
         Button create = new Button("Create Directory");
         Button remove = new Button("Remove");
         Button quit = new Button("QUIT");
@@ -58,8 +60,9 @@ public class ClientToReceiveFiles extends Application {
 
         // add all the buttons to grid pane
         gridPane.add(read, 0, 0);
-        gridPane.add(create, 1, 0);
-        gridPane.add(remove, 2, 0);
+        gridPane.add(getBytes, 1, 0);
+        gridPane.add(create, 2, 0);
+        gridPane.add(remove, 3, 0);
         gridPane.add(quit, 10, 0);
 
         BorderPane mainPane = new BorderPane();
@@ -134,14 +137,14 @@ public class ClientToReceiveFiles extends Application {
             if (connected) {
                 if (serverFile != null) {
                     textFile = PopUpWindows.read(serverFile);
-                    if (textFile.isEmpty()) {
-                        textArea.appendText("Text file closed\n");
-                    }
-                    else {
+                    if (textFile != null) {
                         // write arrayList to the server
                         writeObjectToServer();
                         Object reply = readFromServer();
                         textArea.appendText((String) reply);
+                    }
+                    else {
+                        textArea.appendText("Text file closed\n");
                     }
                 }
                 else {
@@ -151,6 +154,12 @@ public class ClientToReceiveFiles extends Application {
             // not connected
             else {
                 textArea.appendText("Please connect to the server:\n");
+            }
+        });
+
+        getBytes.setOnAction(e -> {
+            if (connected && serverFile != null) {
+                PopUpWindows.readBytes(serverFile);
             }
         });
 
